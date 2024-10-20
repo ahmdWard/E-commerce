@@ -17,7 +17,7 @@ exports.getAllUsers = catchAsync(async(req,res,next)=>{
     
     const users= await userModel.find()
 
-    res.status(201).json({
+    res.status(200).json({
         status:"success",
         length:users.length,
         data:{
