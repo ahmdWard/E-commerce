@@ -1,6 +1,7 @@
 const { default: mongoose } = require('mongoose')
 const moongose= require('mongoose')
 const validator = require('validator')
+const bcrypt= require('bcrypt')
 
 const userSchema= new mongoose.Schema({
     firstName:{
@@ -32,7 +33,7 @@ const userSchema= new mongoose.Schema({
             return el===this.password
         },
         message: 'Passwords are not the same!'
-       }
+       },
     },
     phone:{
         type:String,
@@ -47,4 +48,29 @@ const userSchema= new mongoose.Schema({
 
 })
 
+// ecrypting password before saving
+
+
+userSchema.pre('save',async function(next){
+
+    // if(!this.isModified(this.password)) return next()
+
+    //hashing password
+   this.password = await bcrypt.hash(this.password,12)
+    
+   this.passwordConfirm = undefined
+   next()
+})
+
+userSchema.methods.correctPassword= async function(candidatePassword ,userPassword){
+
+    return await bcrypt.compare(candidatePassword,userPassword)
+}
+
+
 module.exports=moongose.model("user",userSchema)
+
+
+
+
+
