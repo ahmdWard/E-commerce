@@ -5,6 +5,7 @@ const catchAsync = require('../middlewares/asyncWrapper');
 const signToken = require('../utils/signToken')
 const userModel = require('../models/userModel')
 const AppError = require('../utils/appError')
+const { promisify } = require('util');
 
 
 const createAndSendToken = (user,statusCode,res)=>{
@@ -64,8 +65,8 @@ exports.protect = catchAsync(async(req,res,next)=>{
     let token 
 
     // getting token
-    if(req.headers.authorization||req.headers.authorization.startsWith('Barear'))
-        token=req.headers.authorization.split('')[1]
+    if(req.headers.authorization && req.headers.authorization.startsWith('Bearer'))
+        token=req.headers.authorization.split(' ')[1]
     
      //check if the token is exist
      if(!token)
@@ -73,7 +74,14 @@ exports.protect = catchAsync(async(req,res,next)=>{
     
      //check the validation of the token 
     const decoded = await promisify(jwt.verify)(token,process.env.JWT_SECRET)
-
     
+    const currentUser = await userModel.findById(decoded.userId);
+
+    //check if the user still exist 
+    if (!currentUser) {
+        return next(new AppError('The user belonging to this token does no longer exist.', 401));
+    }
+
+    next()
 
 })

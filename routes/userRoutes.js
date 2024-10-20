@@ -14,6 +14,8 @@ router
 .post(authController.login)
 
 
+router.use(authController.protect)
+
 router
 .route("/")
 .get(userController.getAllUsers)
