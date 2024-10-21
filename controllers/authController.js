@@ -6,6 +6,7 @@ const signToken = require('../utils/signToken')
 const userModel = require('../models/userModel')
 const AppError = require('../utils/appError')
 const { promisify } = require('util');
+const crypto = require('crypto')
 
 
 const createAndSendToken = (user,statusCode,res)=>{
@@ -84,4 +85,68 @@ exports.protect = catchAsync(async(req,res,next)=>{
 
     next()
 
+})
+
+
+exports.forgerPassword= catchAsync(async(req,res,next)=>{
+
+    const {email} =req.body
+
+    if(!email)
+        return next(new AppError('email is required'),400)
+
+    const user = await userModel.findOne({email})
+     
+    console.log(user)
+    if(!user)
+        return next(new AppError('no user with this email'),404)
+
+    const resetToken =user.generateResetToken()
+
+    // everytime you save the model it validate the schema 
+     await user.save({validateBeforeSave:false})
+
+
+    res.status(200).json({
+        status:"success",
+        data:{
+            user
+        }
+    })
+    
+})
+
+exports.resetPassword = catchAsync(async(req,res,next)=>{
+
+    const token = req.params.token
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
+
+    const user = await userModel.findOne({
+        passwordResetToken:hashedToken,
+        passwordResetTokenExpireAt:{$gt:Date.now()-1}
+});
+
+      // 2) If token has not expired, and there is user, set the new password
+
+    if(!user){
+        return next(new AppError('this token isnot valid or expired'),400)
+    }
+
+    user.password = req.body.password;
+    user.passwordConfirm = req.body.passwordConfirm
+    
+    user.passwordResetToken=undefined
+    user.passwordResetTokenExpireAt=undefined
+    user.passwordChangedAt=Date.now()
+
+    await user.save()
+
+    res.status(200).json({
+        status:"success",
+        data:{
+            user,
+            message:'kolo bono'
+        }
+    })
 })

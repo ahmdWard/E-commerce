@@ -14,7 +14,18 @@ router
 .post(authController.login)
 
 
+router
+.route('/forgetPassword')
+.post(authController.forgerPassword)
+
+router
+.route('/resetPassword/:token')
+.patch(authController.resetPassword)
+
+
+
 router.use(authController.protect)
+
 
 router
 .route("/")

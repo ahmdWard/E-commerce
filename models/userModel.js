@@ -2,6 +2,7 @@ const { default: mongoose } = require('mongoose')
 const moongose= require('mongoose')
 const validator = require('validator')
 const bcrypt= require('bcrypt')
+const crypto =require('crypto')
 
 const userSchema= new mongoose.Schema({
     firstName:{
@@ -43,18 +44,19 @@ const userSchema= new mongoose.Schema({
     active:{
         type:Boolean,
         default:true
-    }
+    },
+    passwordChangedAt:Date,
+    passwordResetToken:String,
+    passwordResetTokenExpireAt:Date,
     
-
 })
 
 // ecrypting password before saving
 
-
 userSchema.pre('save',async function(next){
 
-    // if(!this.isModified(this.password)) return next()
-
+    if (!this.isModified('password')) return next();
+    
     //hashing password
    this.password = await bcrypt.hash(this.password,12)
     
@@ -67,6 +69,23 @@ userSchema.methods.correctPassword= async function(candidatePassword ,userPasswo
     return await bcrypt.compare(candidatePassword,userPassword)
 }
 
+userSchema.methods.generateResetToken = function(){
+
+
+    const resetToken = crypto.randomBytes(32).toString('hex')
+
+    console.log(resetToken);
+    
+    this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex')
+
+    console.log(this.passwordResetToken);
+    
+
+    this.passwordResetTokenExpireAt = Date.now()+10*60*1000
+
+    return resetToken
+
+}
 
 module.exports=moongose.model("user",userSchema)
 
